@@ -16,6 +16,14 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
+// iOS Safari in particular will silently reuse a cached GET response (e.g. a
+// stale /auth/me from before login) unless told not to, which can make an
+// otherwise-valid session look logged out after the app resumes from background.
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/flashcard-sets', flashcardsRoutes);
