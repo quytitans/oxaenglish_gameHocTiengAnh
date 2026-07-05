@@ -51,6 +51,7 @@ router.get('/', (req, res) => {
       cardCount: s.card_count,
       visibility: s.visibility,
       isOwner: s.created_by === req.user.id,
+      canManage: s.created_by === req.user.id || req.user.role === 'admin',
     })),
   });
 });
@@ -75,6 +76,7 @@ router.get('/:id', (req, res) => {
       createdAt: set.created_at,
       visibility: set.visibility,
       isOwner: set.created_by === req.user.id,
+      canManage: set.created_by === req.user.id || req.user.role === 'admin',
       cards,
     },
   });
@@ -114,6 +116,63 @@ router.post('/', (req, res) => {
   }
 
   res.status(201).json({ id: setId });
+});
+
+function canManage(set, user) {
+  return set.created_by === user.id || user.role === 'admin';
+}
+
+router.put('/:id', (req, res) => {
+  const set = db.prepare('SELECT * FROM flashcard_sets WHERE id = ?').get(req.params.id);
+  if (!set) return res.status(404).json({ message: 'Game not found' });
+  if (!canManage(set, req.user)) {
+    return res.status(403).json({ message: 'Bạn không có quyền sửa bộ thẻ này' });
+  }
+
+  const { title, content, visibility } = req.body || {};
+  if (!title || !title.trim()) {
+    return res.status(400).json({ message: 'Title là bắt buộc' });
+  }
+  const setVisibility = visibility === 'private' ? 'private' : 'public';
+
+  let cards;
+  try {
+    cards = parseContent(content);
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+
+  const insertCard = db.prepare(
+    'INSERT INTO flashcards (set_id, vi, en, order_index) VALUES (?, ?, ?, ?)'
+  );
+
+  db.exec('BEGIN');
+  try {
+    db.prepare('UPDATE flashcard_sets SET title = ?, visibility = ? WHERE id = ?').run(
+      title.trim(),
+      setVisibility,
+      set.id
+    );
+    db.prepare('DELETE FROM flashcards WHERE set_id = ?').run(set.id);
+    cards.forEach((card, index) => insertCard.run(set.id, card.vi, card.en, index));
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+
+  res.json({ id: set.id });
+});
+
+router.delete('/:id', (req, res) => {
+  const set = db.prepare('SELECT * FROM flashcard_sets WHERE id = ?').get(req.params.id);
+  if (!set) return res.status(404).json({ message: 'Game not found' });
+  if (!canManage(set, req.user)) {
+    return res.status(403).json({ message: 'Bạn không có quyền xóa bộ thẻ này' });
+  }
+
+  db.prepare('DELETE FROM flashcard_sets WHERE id = ?').run(set.id);
+  res.json({ message: 'Đã xóa bộ thẻ' });
 });
 
 module.exports = router;

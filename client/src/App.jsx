@@ -55,6 +55,14 @@ export default function App() {
                 }
               />
               <Route
+                path="/flipcard/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <FlipcardCreatePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/flipcard/:id"
                 element={
                   <ProtectedRoute>

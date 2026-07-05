@@ -1,22 +1,51 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/client';
 
 const emptyForm = { title: '', content: '', visibility: 'public' };
 
+function setToFormContent(set) {
+  return set.cards.map((c) => `${c.vi}|${c.en}`).join(';');
+}
+
 export default function FlipcardCreatePage() {
+  const { id } = useParams();
+  const isEdit = Boolean(id);
+  const navigate = useNavigate();
+
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(isEdit);
+
+  useEffect(() => {
+    if (!isEdit) return;
+    api
+      .get(`/flashcard-sets/${id}`)
+      .then((res) => {
+        const set = res.data.set;
+        setForm({
+          title: set.title,
+          content: setToFormContent(set),
+          visibility: set.visibility,
+        });
+      })
+      .catch(() => setError('Không tải được bộ thẻ'))
+      .finally(() => setLoading(false));
+  }, [id, isEdit]);
 
   async function handleSave(e) {
     e.preventDefault();
     setError('');
     setSaving(true);
     try {
-      const res = await api.post('/flashcard-sets', form);
-      navigate(`/flipcard/${res.data.id}`);
+      if (isEdit) {
+        await api.put(`/flashcard-sets/${id}`, form);
+        navigate(`/flipcard/${id}`);
+      } else {
+        const res = await api.post('/flashcard-sets', form);
+        navigate(`/flipcard/${res.data.id}`);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Lưu thất bại, vui lòng kiểm tra định dạng');
     } finally {
@@ -25,13 +54,19 @@ export default function FlipcardCreatePage() {
   }
 
   function handleCancel() {
-    setForm(emptyForm);
-    setError('');
+    if (isEdit) {
+      navigate(`/flipcard/${id}`);
+    } else {
+      setForm(emptyForm);
+      setError('');
+    }
   }
+
+  if (loading) return <div style={styles.page}>Đang tải...</div>;
 
   return (
     <div style={styles.page}>
-      <h1 style={styles.title}>Thiết kế nội dung game</h1>
+      <h1 style={styles.title}>{isEdit ? 'Sửa bộ thẻ' : 'Thiết kế nội dung game'}</h1>
 
       <form className="card" style={styles.card} onSubmit={handleSave}>
         <label style={styles.label}>Title</label>
