@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PinInput from '../components/PinInput';
 
 export default function LoginPage() {
   const [account, setAccount] = useState('');
@@ -13,10 +14,14 @@ export default function LoginPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    if (password.length !== 4) {
+      setError('Vui lòng nhập đủ 4 số');
+      return;
+    }
     setSubmitting(true);
     try {
-      await login(account, password);
-      navigate('/');
+      const user = await login(account, password);
+      navigate(user.role === 'admin' ? '/admin' : '/');
     } catch (err) {
       setError(err.response?.data?.message || 'Đăng nhập thất bại');
     } finally {
@@ -26,7 +31,7 @@ export default function LoginPage() {
 
   return (
     <div style={styles.page}>
-      <form className="card" style={styles.card} onSubmit={handleSubmit}>
+      <form className="card" style={styles.card} onSubmit={handleSubmit} autoComplete="off">
         <div style={styles.logo}>OX</div>
         <h1 style={styles.title}>OXA English</h1>
         <p style={styles.subtitle}>Đăng nhập để bắt đầu học</p>
@@ -37,22 +42,13 @@ export default function LoginPage() {
           value={account}
           onChange={(e) => setAccount(e.target.value)}
           placeholder="Username hoặc số điện thoại"
+          autoComplete="off"
           autoFocus
           required
         />
 
         <label style={styles.label}>Mật khẩu (4 số)</label>
-        <input
-          className="input"
-          type="password"
-          inputMode="numeric"
-          maxLength={4}
-          pattern="\d{4}"
-          value={password}
-          onChange={(e) => setPassword(e.target.value.replace(/\D/g, '').slice(0, 4))}
-          placeholder="****"
-          required
-        />
+        <PinInput value={password} onChange={setPassword} />
 
         {error && <div style={styles.error}>{error}</div>}
 

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { EditIcon, KeyIcon, TrashIcon } from '../components/icons';
 
-const emptyForm = { username: '', password: '', role: 'user' };
+const emptyForm = { username: '', password: '' };
 
 export default function AdminPage() {
   const { user: currentUser } = useAuth();
@@ -15,7 +16,7 @@ export default function AdminPage() {
   const [creating, setCreating] = useState(false);
 
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ username: '', role: 'user' });
+  const [editForm, setEditForm] = useState({ username: '' });
 
   const [resetId, setResetId] = useState(null);
   const [resetPassword, setResetPassword] = useState('');
@@ -61,7 +62,7 @@ export default function AdminPage() {
 
   function startEdit(u) {
     setEditingId(u.id);
-    setEditForm({ username: u.username, role: u.role });
+    setEditForm({ username: u.username });
   }
 
   async function handleSaveEdit(id) {
@@ -128,19 +129,11 @@ export default function AdminPage() {
             }
             required
           />
-          <select
-            className="input"
-            style={{ flex: 1 }}
-            value={createForm.role}
-            onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
-          >
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-          </select>
           <button className="btn btn-primary" disabled={creating}>
             {creating ? 'Đang tạo...' : 'Tạo tài khoản'}
           </button>
         </form>
+        <p style={styles.createHint}>Tài khoản mới tạo sẽ luôn có quyền User.</p>
       </div>
 
       {error && <div style={styles.errorBanner}>{error}</div>}
@@ -181,14 +174,9 @@ export default function AdminPage() {
                         />
                       </td>
                       <td style={styles.td}>
-                        <select
-                          className="input"
-                          value={editForm.role}
-                          onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                        >
-                          <option value="user">User</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                        <span style={u.role === 'admin' ? styles.roleAdmin : styles.roleUser}>
+                          {u.role}
+                        </span>
                       </td>
                       <td style={styles.td}>{formatDate(u.createdAt)}</td>
                       <td style={{ ...styles.td, ...styles.actions }}>
@@ -212,24 +200,33 @@ export default function AdminPage() {
                       </td>
                       <td style={styles.td}>{formatDate(u.createdAt)}</td>
                       <td style={{ ...styles.td, ...styles.actions }}>
-                        <button className="btn btn-secondary" onClick={() => startEdit(u)}>
-                          Sửa
+                        <button
+                          className="icon-btn icon-btn-edit"
+                          onClick={() => startEdit(u)}
+                          title="Sửa thông tin"
+                          aria-label="Sửa thông tin"
+                        >
+                          <EditIcon />
                         </button>
                         <button
-                          className="btn btn-secondary"
+                          className="icon-btn icon-btn-key"
                           onClick={() => {
                             setResetId(resetId === u.id ? null : u.id);
                             setResetPassword('');
                           }}
+                          title="Đổi mật khẩu"
+                          aria-label="Đổi mật khẩu"
                         >
-                          Đổi mật khẩu
+                          <KeyIcon />
                         </button>
                         <button
-                          className="btn btn-danger"
+                          className="icon-btn icon-btn-delete"
                           onClick={() => handleDelete(u)}
                           disabled={u.id === currentUser.id}
+                          title="Xóa tài khoản"
+                          aria-label="Xóa tài khoản"
                         >
-                          Xóa
+                          <TrashIcon />
                         </button>
                       </td>
                     </>
@@ -276,6 +273,7 @@ const styles = {
   sectionTitle: { fontSize: 15, margin: '0 0 12px' },
   createCard: { padding: 20, marginBottom: 20 },
   createForm: { display: 'flex', gap: 10, flexWrap: 'wrap' },
+  createHint: { fontSize: 12, color: 'var(--color-text-muted)', margin: '10px 0 0' },
   search: { marginBottom: 16, maxWidth: 320 },
   tableCard: { overflowX: 'auto' },
   table: { width: '100%', borderCollapse: 'collapse' },
