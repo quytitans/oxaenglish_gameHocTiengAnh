@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PinInput from '../components/PinInput';
 
@@ -8,8 +8,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const { login } = useAuth();
+  const { user, loading, login } = useAuth();
   const navigate = useNavigate();
+
+  // If a saved bookmark/home-screen icon opens straight to /login (e.g. it
+  // was captured while briefly logged out) but the session is actually
+  // still valid, don't strand the user on the login form — send them in.
+  if (loading) return null;
+  if (user) return <Navigate to={user.role === 'admin' ? '/admin' : '/'} replace />;
 
   async function handleSubmit(e) {
     e.preventDefault();

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 
-const emptyForm = { title: '', content: '' };
+const emptyForm = { title: '', content: '', visibility: 'public' };
 
 export default function FlipcardCreatePage() {
   const [form, setForm] = useState(emptyForm);
@@ -58,6 +58,29 @@ export default function FlipcardCreatePage() {
           <code>câu tiếng việt|câu tiếng anh</code>
         </p>
 
+        <label style={styles.label}>Chế độ hiển thị</label>
+        <div style={styles.visibilityRow}>
+          <button
+            type="button"
+            className={`btn ${form.visibility === 'public' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setForm({ ...form, visibility: 'public' })}
+          >
+            🌐 Public
+          </button>
+          <button
+            type="button"
+            className={`btn ${form.visibility === 'private' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setForm({ ...form, visibility: 'private' })}
+          >
+            🔒 Private
+          </button>
+        </div>
+        <p style={styles.hint}>
+          {form.visibility === 'public'
+            ? 'Public: tất cả người dùng đều thấy và chơi được bộ thẻ này.'
+            : 'Private: chỉ mình bạn thấy và chơi được bộ thẻ này.'}
+        </p>
+
         {error && <div style={styles.error}>{error}</div>}
 
         <div style={styles.actions}>
@@ -80,6 +103,7 @@ const styles = {
   label: { fontSize: 13, fontWeight: 600, marginTop: 12, marginBottom: 6 },
   textarea: { resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 },
   hint: { fontSize: 12, color: 'var(--color-text-muted)', margin: '8px 0 0' },
+  visibilityRow: { display: 'flex', gap: 10 },
   error: {
     color: 'var(--color-danger)',
     fontSize: 13,

@@ -23,6 +23,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    visibility TEXT NOT NULL DEFAULT 'public',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -34,6 +35,12 @@ db.exec(`
     order_index INTEGER NOT NULL
   );
 `);
+
+// Migration: older databases were created before `visibility` existed.
+const setColumns = db.prepare('PRAGMA table_info(flashcard_sets)').all();
+if (!setColumns.some((c) => c.name === 'visibility')) {
+  db.exec("ALTER TABLE flashcard_sets ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'");
+}
 
 // Seed default accounts (idempotent: only inserts ones that don't exist yet).
 const insertUser = db.prepare(

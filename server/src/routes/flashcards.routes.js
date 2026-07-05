@@ -32,14 +32,16 @@ function parseContent(content) {
 }
 
 router.get('/', (req, res) => {
+  // A set is visible if it's public, or private but owned by the caller.
   const sets = db
     .prepare(
-      `SELECT s.id, s.title, s.created_at,
+      `SELECT s.id, s.title, s.created_at, s.visibility, s.created_by,
               (SELECT COUNT(*) FROM flashcards f WHERE f.set_id = s.id) AS card_count
        FROM flashcard_sets s
+       WHERE s.visibility = 'public' OR s.created_by = ?
        ORDER BY s.created_at DESC`
     )
-    .all();
+    .all(req.user.id);
 
   res.json({
     sets: sets.map((s) => ({
@@ -47,6 +49,8 @@ router.get('/', (req, res) => {
       title: s.title,
       createdAt: s.created_at,
       cardCount: s.card_count,
+      visibility: s.visibility,
+      isOwner: s.created_by === req.user.id,
     })),
   });
 });
@@ -55,18 +59,33 @@ router.get('/:id', (req, res) => {
   const set = db.prepare('SELECT * FROM flashcard_sets WHERE id = ?').get(req.params.id);
   if (!set) return res.status(404).json({ message: 'Game not found' });
 
+  // Private sets are only visible to their creator.
+  if (set.visibility === 'private' && set.created_by !== req.user.id) {
+    return res.status(404).json({ message: 'Game not found' });
+  }
+
   const cards = db
     .prepare('SELECT id, vi, en FROM flashcards WHERE set_id = ? ORDER BY order_index ASC')
     .all(set.id);
 
-  res.json({ set: { id: set.id, title: set.title, createdAt: set.created_at, cards } });
+  res.json({
+    set: {
+      id: set.id,
+      title: set.title,
+      createdAt: set.created_at,
+      visibility: set.visibility,
+      isOwner: set.created_by === req.user.id,
+      cards,
+    },
+  });
 });
 
 router.post('/', (req, res) => {
-  const { title, content } = req.body || {};
+  const { title, content, visibility } = req.body || {};
   if (!title || !title.trim()) {
     return res.status(400).json({ message: 'Title là bắt buộc' });
   }
+  const setVisibility = visibility === 'private' ? 'private' : 'public';
 
   let cards;
   try {
@@ -75,7 +94,9 @@ router.post('/', (req, res) => {
     return res.status(400).json({ message: err.message });
   }
 
-  const insertSet = db.prepare('INSERT INTO flashcard_sets (title, created_by) VALUES (?, ?)');
+  const insertSet = db.prepare(
+    'INSERT INTO flashcard_sets (title, created_by, visibility) VALUES (?, ?, ?)'
+  );
   const insertCard = db.prepare(
     'INSERT INTO flashcards (set_id, vi, en, order_index) VALUES (?, ?, ?, ?)'
   );
@@ -83,7 +104,7 @@ router.post('/', (req, res) => {
   db.exec('BEGIN');
   let setId;
   try {
-    const info = insertSet.run(title.trim(), req.user.id);
+    const info = insertSet.run(title.trim(), req.user.id, setVisibility);
     setId = info.lastInsertRowid;
     cards.forEach((card, index) => insertCard.run(setId, card.vi, card.en, index));
     db.exec('COMMIT');

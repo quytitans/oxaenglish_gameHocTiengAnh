@@ -41,6 +41,9 @@ export default function FlipcardListPage() {
               <div style={styles.setIcon}>🃏</div>
               <div style={styles.setTitle}>{s.title}</div>
               <div style={styles.setMeta}>{s.cardCount} thẻ</div>
+              {s.visibility === 'private' && (
+                <span style={styles.privateBadge}>🔒 Private</span>
+              )}
             </button>
           ))}
         </div>
@@ -79,5 +82,13 @@ const styles = {
   setIcon: { fontSize: 32 },
   setTitle: { fontWeight: 700, fontSize: 15 },
   setMeta: { fontSize: 12, color: 'var(--color-text-muted)' },
+  privateBadge: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: 'var(--color-accent-dark)',
+    background: 'var(--color-accent-light)',
+    padding: '2px 8px',
+    borderRadius: 999,
+  },
   emptyState: { padding: 40, textAlign: 'center', color: 'var(--color-text-muted)' },
 };
