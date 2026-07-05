@@ -9,10 +9,14 @@ import FlipcardListPage from './pages/FlipcardListPage';
 import FlipcardCreatePage from './pages/FlipcardCreatePage';
 import FlipcardPlayPage from './pages/FlipcardPlayPage';
 
+// Strip the trailing slash Vite adds to BASE_URL ("/oxaenglish/" -> "/oxaenglish");
+// an empty string here correctly means "no prefix" for local dev.
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '');
+
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
           <Navbar />
           <main style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>

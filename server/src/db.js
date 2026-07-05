@@ -41,8 +41,8 @@ const insertUser = db.prepare(
 );
 const findUser = db.prepare('SELECT id FROM users WHERE username = ?');
 const defaultAccounts = [
-  { username: 'admin', password: '0000', role: 'admin' },
-  { username: 'user', password: '1111', role: 'user' },
+  { username: 'admin', password: process.env.SEED_ADMIN_PASSWORD || '0000', role: 'admin' },
+  { username: 'user', password: process.env.SEED_USER_PASSWORD || '1111', role: 'user' },
 ];
 for (const acc of defaultAccounts) {
   if (!findUser.get(acc.username)) {
